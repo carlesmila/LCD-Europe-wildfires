@@ -1,0 +1,2 @@
+Please paste gridded population files here, e.g. "2006/Grid_ETRS89_LAEA_1K_ref_GEOSTAT_2006.shp"
+Files are available from https://ec.europa.eu/eurostat/web/gisco/geodata/reference-data/population-distribution-demography/geostat

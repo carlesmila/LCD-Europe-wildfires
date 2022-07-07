@@ -1,0 +1,2 @@
+Please paste weekly mortality files here, "regional_cellmean_annual_fire_weather_mean_EU_map.nc4"
+Files can be downloaded from: https://appsso.eurostat.ec.europa.eu/nui/show.do?dataset=demo_r_mwk3_t&lang=en

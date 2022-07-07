@@ -1,0 +1,2 @@
+Please paste NUTS boundary files here, e.g. "NUTS_RG_01M_2013_3035.geojson"
+Files can be downloaded from: https://ec.europa.eu/eurostat/web/nuts/background

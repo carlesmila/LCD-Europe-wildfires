@@ -1,0 +1,2 @@
+Please paste regional files here, e.g. "Europe_regions.shp"
+Files are available from the Lancet Countdown authors under request

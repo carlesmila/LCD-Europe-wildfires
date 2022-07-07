@@ -1,0 +1,270 @@
+---
+title: 'LCDE Wildfires: Results'
+author: "Carles Milà"
+date: "`r Sys.Date()`"
+
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center', echo = F, message = F, warning = F)
+
+# libraries
+library("DT")
+library("colorspace")
+library("sf")
+library("tmap")
+library("knitr")
+library("tidyverse")
+```
+
+### Time series exposure by region
+
+```{r mainfig, fig.width = 9, fig.height = 5}
+expo_region <- read_csv("data/processed/expo_region.csv") 
+mod_south <- lm(pm25w_avg~year, data = expo_region, subset = expo_region$region=="South")
+mod_west <- lm(pm25w_avg~year, data = expo_region, subset = expo_region$region=="West")
+mod_central <- lm(pm25w_avg~year, data = expo_region, subset = expo_region$region=="Central")
+mod_north <- lm(pm25w_avg~year, data = expo_region, subset = expo_region$region=="North")
+
+expo_region <- expo_region %>%
+  mutate(region = case_when(
+    region == "South" ~ "Southern Europe",
+    region == "West" ~ "Western Europe",
+    region == "Central" ~ "Central and Eastern Europe",
+    region == "North" ~ "Northern Europe"))
+
+mods <- bind_rows(
+  data.frame(region = "Southern Europe", int = coef(mod_south)[1], coef = coef(mod_south)[2], 
+             lower = confint(mod_south)[2,1], upper = confint(mod_south)[2,2]),
+  data.frame(region = "Central and Eastern Europe", int = coef(mod_central)[1], coef = coef(mod_central)[2], 
+             lower = confint(mod_central)[2,1], upper = confint(mod_central)[2,2]),
+  data.frame(region = "Northern Europe", int = coef(mod_north)[1], coef = coef(mod_north)[2], 
+             lower = confint(mod_north)[2,1], upper = confint(mod_north)[2,2]),
+  data.frame(region = "Western Europe", int = coef(mod_west)[1], coef = coef(mod_west)[2], 
+             lower = confint(mod_west)[2,1], upper = confint(mod_west)[2,2])) %>%
+  mutate(lab = paste0(region, ": ", round(coef, 3), " (", round(lower, 3), ", ", round(upper, 3), ")"),
+         pm25w_avg = c(0.58, 0.55, 0.52, 0.49), year = 2003)
+
+p1 <- ggplot() + 
+  geom_abline(data = mods, aes(intercept = int, slope = coef, col=region),
+              lty = 2) +
+  geom_line(data = expo_region, aes(x=year, y=pm25w_avg, col=region, group=region),
+            alpha = 0.5) +
+  geom_text(data = mods, aes(x = year, y = pm25w_avg, label = lab, col = region),
+            size = 4, hjust = 0) +
+  scale_colour_manual(values = c("#1B9E77", "#7570B3", "#D95F02", "#E7298A")) +
+  theme_bw() +
+  xlab("Year") + 
+  ylab(expression(Annual~`wildfire-PM`[2.5]~(mu*g/m^3))) +
+  theme(legend.position = "none", axis.title = element_text(size = 10))
+p1
+# ggsave("figures/exposure_ts.png", p1, dpi = 500, width = 8, height = 5)
+```
+
+```{r mainfig detail}
+DT::datatable(mutate_if(expo_region, is.numeric, function(x) round(x, 3)))
+```
+
+### Time series exposure by region - sensitivity
+
+```{r sensfig, fig.width = 9, fig.height = 5}
+expo_region <- read_csv("data/processed/regionmean_sensitivity.csv") %>%
+  rename(pm25w_avg = regmean)
+mod_south <- lm(pm25w_avg~year, data = expo_region, subset = expo_region$region=="South")
+mod_west <- lm(pm25w_avg~year, data = expo_region, subset = expo_region$region=="West")
+mod_central <- lm(pm25w_avg~year, data = expo_region, subset = expo_region$region=="Central")
+mod_north <- lm(pm25w_avg~year, data = expo_region, subset = expo_region$region=="North")
+
+expo_region <- expo_region %>%
+  mutate(region = case_when(
+    region == "South" ~ "Southern Europe",
+    region == "West" ~ "Western Europe",
+    region == "Central" ~ "Central and Eastern Europe",
+    region == "North" ~ "Northern Europe"))
+
+mods <- bind_rows(
+  data.frame(region = "Southern Europe", int = coef(mod_south)[1], coef = coef(mod_south)[2], 
+             lower = confint(mod_south)[2,1], upper = confint(mod_south)[2,2]),
+  data.frame(region = "Central and Eastern Europe", int = coef(mod_central)[1], coef = coef(mod_central)[2], 
+             lower = confint(mod_central)[2,1], upper = confint(mod_central)[2,2]),
+  data.frame(region = "Northern Europe", int = coef(mod_north)[1], coef = coef(mod_north)[2], 
+             lower = confint(mod_north)[2,1], upper = confint(mod_north)[2,2]),
+  data.frame(region = "Western Europe", int = coef(mod_west)[1], coef = coef(mod_west)[2], 
+             lower = confint(mod_west)[2,1], upper = confint(mod_west)[2,2])) %>%
+  mutate(lab = paste0(region, ": ", round(coef, 3), " (", round(lower, 3), ", ", round(upper, 3), ")"),
+         pm25w_avg = c(0.58, 0.55, 0.52, 0.49), year = 2003)
+
+p1 <- ggplot() + 
+  geom_abline(data = mods, aes(intercept = int, slope = coef, col=region),
+              lty = 2) +
+  geom_line(data = expo_region, aes(x=year, y=pm25w_avg, col=region, group=region),
+            alpha = 0.5) +
+  geom_text(data = mods, aes(x = year, y = pm25w_avg, label = lab, col = region),
+            size = 4, hjust = 0) +
+  scale_colour_manual(values = c("#1B9E77", "#7570B3", "#D95F02", "#E7298A")) +
+  theme_bw() +
+  xlab("Year") + 
+  ylab(expression(Annual~`wildfire-PM`[2.5]~(mu*g/m^3))) +
+  theme(legend.position = "none", axis.title = element_text(size = 10))
+p1
+# ggsave("figures/exposure_ts_sensitivity.png", p1, dpi = 500, width = 8, height = 5)
+```
+
+### Yearly number of days population-weighted wildfire-PM2.5 > 1ug/m3 
+
+```{r mapfig, width = 8, height = 8}
+# Read NUTS boundaries data
+nuts21 <- st_read("data/boundaries/NUTS_RG_01M_2021_3035.geojson", quiet=TRUE) %>%
+  dplyr::select(NUTS_ID, NAME_LATN)
+
+# Compute percentile
+expo_nuts <- read_csv("data/processed/expo_dist.csv")
+perc1 <-  round(ecdf(expo_nuts$pm25w)(1), 3)
+expo_nuts <- group_by(expo_nuts, NUTS, country, region, year) %>%
+  summarise(pm25_1 = sum(pm25w > 1)) 
+# write_csv(expo_nuts, "data/processed/expo1ug_nuts.csv")
+expo_nuts <- expo_nuts %>%
+  group_by(NUTS, country, region) %>%
+  summarise(pm25_1 = mean(pm25_1)) %>%
+  ungroup()
+expo_nuts <- left_join(expo_nuts, nuts21, by = c("NUTS" = "NUTS_ID")) %>%
+  st_as_sf()
+
+# Basemaps
+basemap <- st_read("data/basemap/ne_10m_admin_0_countries.shp",
+                  quiet=TRUE) %>%
+  st_transform(crs = st_crs(nuts21))
+nuts0 <- st_read("data/boundaries/NUTS_RG_01M_2021_3035.geojson", quiet=TRUE) %>%
+  filter(LEVL_CODE == 0 & NUTS_ID %in% unique(substr(expo_nuts$NUTS, 1, 2))) %>%
+  st_as_sf()
+
+# Map
+p2 <- tm_shape(basemap, bbox = st_bbox(expo_nuts)) +
+  tm_fill(col = "#E7E6E6") +
+tm_shape(expo_nuts) +
+  tm_polygons(col = "pm25_1", n = 10, lwd = 0.2, title = "Number of\ndays/year") +
+tm_shape(nuts0) +
+  tm_borders(lwd = 0.5, col = "grey10") +
+tm_layout(outer.margins = rep(0.005, 4))
+p2
+# tmap_save(p1, "figures/avg_expo1ug.png", dpi = 500, width = 7.8, height = 8)
+```
+
+```{r mapfig detail}
+DT::datatable(st_drop_geometry(mutate_if(expo_nuts, is.numeric, function(x) round(x, 3))))
+```
+
+### Yearly attributable deaths by country
+
+```{r attrfig, fig.width=6, fig.height=9}
+expo_nuts <- read_csv("data/processed/attributable_nuts.csv") 
+attr_country <- read_csv("data/processed/attributable_country.csv") %>%
+  dplyr::filter(year != 2020) %>%
+  bind_rows(data.frame(year=2003, country="IE"))
+Ncountry <- attr_country %>%
+  group_by(year) %>% 
+  summarise(Ncountry = sum(!is.na(attr)))
+geom_country <- nuts21 %>%
+  dplyr::filter(NUTS_ID %in% expo_nuts$NUTS) %>%
+  group_by(NUTS_ID) %>%
+  mutate(country = substr(NUTS_ID, 1, 2)[[1]]) %>%
+  group_by(country) %>%
+  summarise() %>%
+  ungroup()
+geom_country$geometry <- st_cast(geom_country$geometry, 'MULTIPOLYGON')
+attr_country <- complete(attr_country, year, country) %>%
+  full_join(geom_country, by = "country") %>%
+  st_as_sf() 
+attr_country$hasattr <- ifelse(!is.na(attr_country$attr), "white", "#757575")
+
+p3 <- tm_shape(basemap, bbox = st_bbox(attr_country)) +
+  tm_fill(col = "#E7E6E6") +
+tm_shape(attr_country) +
+  tm_polygons(col = "hasattr", lwd = 0.5) +
+  tm_dots(size = "attr", col = "red", title.size = "Attributable deaths", 
+          legend.is.portrait = F, scale = 2) +
+  tm_facets("year") +
+tm_layout(asp = 0, legend.outside.size = 0.1, panel.label.size = 1.5,
+          outer.margins = rep(0.005, 4), 
+          legend.outside.position = "bottom", legend.position = c("center", "center"))
+p3
+# tmap_save(p3, "figures/yearly_attr.png", dpi = 500, width = 6, height = 9)
+```
+
+```{r attrfig detail}
+DT::datatable(st_drop_geometry(mutate_if(attr_country, is.numeric, function(x) round(x, 3))))
+```
+
+### Europe-wide attributable deaths
+
+```{r attreuro detail}
+attr_euro1 <- read_csv("data/processed/attributable_euro.csv") %>%
+  mutate(Main = paste0(round(attr, 2), " (", round(attrlower, 2), ", ", round(attrupper, 2), ")")) %>%
+  dplyr::select(year, Main)
+attr_euro2 <- read_csv("data/processed/attributable_euro_sensitivity.csv") %>%
+  mutate(Sensitivity = paste0(round(attr, 2), " (", round(attrlower, 2), ", ", round(attrupper, 2), ")")) %>%
+  dplyr::select(year, Sensitivity)
+attr_euro <- inner_join(attr_euro1, attr_euro2, by = "year") %>%
+  inner_join(Ncountry, by = "year")
+kable(attr_euro)
+```
+
+Mean 2015-2019:
+
+```{r}
+dplyr::filter(read_csv("data/processed/attributable_euro.csv"), year %in% 2015:2019) %>%
+  summarise_all(mean) %>%
+  dplyr::select(-year) %>% 
+  kable(digits = 0)
+```
+
+### Fire weather index
+
+```{r danger, fig.width = 9, fig.height = 5}
+fdanger_region <- read_csv("data/processed/fdanger_region.csv") %>%
+  rename(region = extent)
+fmod_south <- lm(danger~year, data = fdanger_region, 
+                 subset = fdanger_region$region=="South")
+fmod_west <- lm(danger~year, data = fdanger_region, 
+                subset = fdanger_region$region=="West")
+fmod_central <- lm(danger~year, data = fdanger_region, 
+                   subset = fdanger_region$region=="Central")
+fmod_north <- lm(danger~year, data = fdanger_region, 
+                 subset = fdanger_region$region=="North")
+
+fdanger_region <- fdanger_region %>%
+  mutate(region = case_when(
+    region == "South" ~ "Southern Europe",
+    region == "West" ~ "Western Europe",
+    region == "Central" ~ "Central and Eastern Europe",
+    region == "North" ~ "Northern Europe"))
+
+fmods <- bind_rows(
+  data.frame(region = "Southern Europe", int = coef(fmod_south)[1], coef = coef(fmod_south)[2], 
+             lower = confint(fmod_south)[2,1], upper = confint(fmod_south)[2,2]),
+  data.frame(region = "Central and Eastern Europe", int = coef(fmod_central)[1], coef = coef(fmod_central)[2], 
+             lower = confint(fmod_central)[2,1], upper = confint(fmod_central)[2,2]),
+  data.frame(region = "Northern Europe", int = coef(fmod_north)[1], coef = coef(fmod_north)[2], 
+             lower = confint(fmod_north)[2,1], upper = confint(fmod_north)[2,2]),
+  data.frame(region = "Western Europe", int = coef(fmod_west)[1], coef = coef(fmod_west)[2], 
+             lower = confint(fmod_west)[2,1], upper = confint(fmod_west)[2,2])) %>%
+  mutate(lab = paste0(region, ": ", round(coef, 3), " (", round(lower, 3), ", ", round(upper, 3), ")"),
+         danger = c(12, 11.85, 11.55, 11.70), year = 1980)
+
+pf <- ggplot() + 
+  geom_abline(data = fmods, aes(intercept = int, slope = coef, col=region),
+              lty = 2) +
+  geom_line(data = fdanger_region, aes(x=year, y=danger, col=region, group=region),
+            alpha = 0.5) +
+  geom_text(data = fmods, aes(x=year, y=danger, label=lab, col = region),
+            size = 4, hjust = 0) +
+  scale_colour_manual(values = c("#1B9E77", "#7570B3", "#D95F02", "#E7298A")) +
+  theme_bw() +
+  xlab("Year") + 
+  ylab("Fire weather index") +
+  theme(legend.position = "none", axis.title = element_text(size = 10))
+pf
+# ggsave("figures/fdanger_ts.png", pf, dpi = 500, width = 9, height = 5)
+```
+
